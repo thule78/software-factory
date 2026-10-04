@@ -1,0 +1,30 @@
+# Contract: ticket <id> — <ticket title>
+
+Written by backend-builder. Read by frontend-builder and validator.
+Frontend may rely ONLY on what is written here. Anything missing is a CONTRACT_GAP.
+
+## Endpoints / entry points
+
+### <METHOD> <path>   (or: function / event / CLI command name)
+- Auth: <who may call it>
+- Request:
+  ```
+  <type or JSON shape, with required/optional marked>
+  ```
+- Response 2xx:
+  ```
+  <type or JSON shape>
+  ```
+- Errors:
+  | status/code | when | body |
+  |---|---|---|
+  | 400 | <condition> | <shape> |
+
+## Shared types
+<types the frontend should mirror, with file path where the backend defines them>
+
+## Behaviour notes
+- <pagination, ordering, rate limits, eventual consistency, empty states>
+
+## Not provided (yet)
+- <things the ticket does not cover, so frontend does not guess>

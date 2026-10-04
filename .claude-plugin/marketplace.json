@@ -1,0 +1,14 @@
+{
+  "name": "software-factory",
+  "owner": {
+    "name": "thule78"
+  },
+  "description": "Local marketplace for the software-factory plugin",
+  "plugins": [
+    {
+      "name": "software-factory",
+      "source": "./",
+      "description": "Feature factory: grill -> PRD -> tickets -> backend/frontend build -> validate -> PR"
+    }
+  ]
+}

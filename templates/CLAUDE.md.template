@@ -1,0 +1,43 @@
+# <Project name>
+
+<One paragraph: what this project does and who uses it.>
+
+## Stack
+- <language + version>
+- <framework(s) + version>
+- <database / queue / external APIs>
+
+## Commands
+- dev: <command>
+- test (all): <command>
+- lint: <command>
+
+## Architecture rules
+- <e.g. services never import from app/; all DB access goes through repositories>
+- <e.g. every tenant-scoped query filters by tenant_id>
+
+## Do not
+- <e.g. never edit a migration that has shipped>
+- <e.g. never log raw payment or personal data>
+
+## Docs
+- Domain glossary: CONTEXT.md
+- Decisions: docs/adr/
+
+<!--
+  FACTORY LAYERS. The software-factory plugin reads the two sections below.
+  Format is strict: "- key: value", paths comma-separated, relative to repo root.
+  Delete a section, or leave `paths:` empty, to turn that layer off.
+  A backend-only project (CLI, pipeline, library) keeps only ## Backend.
+  Put each layer's test folders in its paths, or its builder cannot write tests.
+-->
+
+## Backend
+- paths: src/api, src/services, src/workers, migrations, tests/backend
+- test: <e.g. pytest -q>
+- typecheck: <e.g. mypy src, or leave empty>
+
+## Frontend
+- paths: src/app, src/components, tests/frontend
+- test: <e.g. npm test -- --run>
+- typecheck: <e.g. npx tsc --noEmit, or leave empty>

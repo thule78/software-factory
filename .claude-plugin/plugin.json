@@ -1,0 +1,15 @@
+{
+  "name": "software-factory",
+  "version": "0.1.0",
+  "description": "Feature factory: grill -> PRD -> tickets -> per-ticket backend/frontend build with independent validation, gated by human approvals and enforced by hooks.",
+  "author": {
+    "name": "thule78"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "tdd",
+    "agents",
+    "factory"
+  ]
+}
