@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from factory_config import read_hook_input  # noqa: E402
+from factory_config import audit, read_hook_input  # noqa: E402
 
 SECRET_PATTERNS = [
     ".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx", "*.keystore", "*.jks",
@@ -84,6 +84,7 @@ for tokens in segments(command):
 
 hits = sorted(p for p in candidates if is_secret(p))
 if hits:
+    audit(data, "deny", "secret files: " + ", ".join(hits))
     print(
         "BLOCKED by software-factory: this would stage or commit secret files:\n  "
         + "\n  ".join(hits)

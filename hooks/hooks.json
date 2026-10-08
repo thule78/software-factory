@@ -1,5 +1,5 @@
 {
-  "description": "software-factory: block secret commits, keep factory agents in their lane (files and shell), stop agents going in circles, gate builder finish on tests",
+  "description": "software-factory: block secret commits, keep factory agents in their lane (files and shell), stop agents going in circles, log their tool calls, gate builder finish on tests",
   "hooks": {
     "PreToolUse": [
       {
@@ -46,6 +46,18 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/stop_gate.py\"",
             "timeout": 1300,
             "statusMessage": "software-factory: running layer tests..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/audit_log.py\"",
+            "timeout": 10
           }
         ]
       }

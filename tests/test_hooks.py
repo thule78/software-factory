@@ -314,6 +314,63 @@ class LoopBreakerTest(unittest.TestCase):
         self.assertFalse(any(results))
 
 
+class AuditLogTest(RepoCase):
+    BACKEND = "software-factory:backend-builder"
+
+    def setUp(self):
+        super().setUp()
+        self.wt = os.path.join(self.repo, ".factory", "worktrees", "7")
+        self.git("worktree", "add", "-q", self.wt, "-b", "t7")
+
+    def entries(self, ticket):
+        path = os.path.join(self.repo, ".factory", "audit", f"{ticket}.jsonl")
+        if not os.path.exists(path):
+            return []
+        with open(path) as f:
+            return [json.loads(line) for line in f]
+
+    def post(self, agent_type, tool, tool_input, cwd=None, response=None):
+        payload = {"hook_event_name": "PostToolUse", "tool_name": tool, "tool_input": tool_input,
+                   "cwd": cwd or self.wt, "agent_id": "a1", "tool_response": response or {}}
+        if agent_type:
+            payload["agent_type"] = agent_type
+        return run_hook("audit_log.py", payload)
+
+    def test_logs_factory_call_under_ticket_from_worktree_path(self):
+        self.post(self.BACKEND, "Bash", {"command": f"cd {self.wt} && pytest -q"}, cwd=self.repo)
+        [entry] = self.entries("7")
+        self.assertEqual((entry["role"], entry["tool"], entry["decision"]), ("backend-builder", "Bash", "ok"))
+        self.assertIn("pytest -q", entry["input"])
+
+    def test_error_response_logged_as_error(self):
+        self.post(self.BACKEND, "Edit", {"file_path": f"{self.wt}/src/api/x.py"}, response={"is_error": True})
+        self.assertEqual(self.entries("7")[0]["decision"], "error")
+
+    def test_denials_from_other_hooks_logged(self):
+        run_hook("path_scope.py", {"tool_name": "Write", "cwd": self.wt, "agent_type": self.BACKEND,
+                                   "tool_input": {"file_path": f"{self.wt}/src/app/x.tsx"}})
+        run_hook("guard_bash.py", {"tool_name": "Bash", "cwd": self.wt, "agent_type": self.BACKEND,
+                                   "tool_input": {"command": "git push"}})
+        entries = self.entries("7")
+        self.assertEqual([e["decision"] for e in entries], ["deny", "deny"])
+        self.assertIn("OUT_OF_SCOPE", entries[0]["reason"])
+
+    def test_call_outside_worktree_logged_as_unknown(self):
+        self.post(self.BACKEND, "Read", {"file_path": f"{self.repo}/CLAUDE.md"}, cwd=self.repo)
+        self.assertEqual(len(self.entries("unknown")), 1)
+
+    def test_main_session_not_logged(self):
+        self.post(None, "Bash", {"command": "ls"})
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".factory", "audit")))
+
+    def test_no_factory_folder_no_log(self):
+        other = tempfile.TemporaryDirectory()
+        self.addCleanup(other.cleanup)
+        subprocess.run(["git", "init", "-q", other.name], check=True)
+        self.post(self.BACKEND, "Bash", {"command": "ls"}, cwd=other.name)
+        self.assertFalse(os.path.exists(os.path.join(other.name, ".factory")))
+
+
 class StopGateTest(RepoCase):
     backend_test = "exit 1"
 
