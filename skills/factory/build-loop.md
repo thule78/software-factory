@@ -75,7 +75,7 @@ cd <integration> && git merge --no-ff factory-t/<slug>-<id> -m "Merge ticket <id
 
 ## Stuck
 
-When a wave ends with any `stuck` ticket, or the frontier is empty with `todo` tickets left, stop and ask the user (AskUserQuestion), one stuck ticket at a time. Brief: ticket, rounds used, last critical findings or blocker, worktree path. Options:
+When a wave ends with any `stuck` ticket, or the frontier is empty with `todo` tickets left, stop and ask the user (AskUserQuestion), one stuck ticket at a time. Brief: ticket, rounds used, last critical findings or blocker, worktree path, and what the agents actually did: read `<repo>/.factory/audit/<id>.jsonl` and summarise its `deny` and `error` lines and any `STUCK` reason in two or three bullets. Options:
 - **Retry with guidance**: the user's note goes to the right builder as `FIX:`; `rounds` resets to 0 for this ticket.
 - **I'll fix it by hand**: wait; when they say done, validate (C) and continue.
 - **Drop the ticket**: remove its worktree and branch, mark `stuck (dropped)`, and tell the user which tickets it was blocking.

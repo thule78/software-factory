@@ -28,6 +28,9 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
 | `agents/validator.md` | Opus. Read-only check against acceptance criteria + contract |
 | `hooks/block_secrets.py` | Blocks `git add`/`git commit` of `.env`, keys, credentials (exit 2) |
 | `hooks/path_scope.py` | Builders can only write inside their layer's paths; validator can't write |
+| `hooks/guard_bash.py` | Same lanes for shell commands (redirects, `sed -i`, `cp`/`mv`/`rm`...), plus no push/merge/reset --hard/sudo/`curl \| sh`/DROP TABLE for factory agents |
+| `hooks/loop_breaker.py` | Stops a factory agent going in circles: same call 4× with no change between, same edit 3×, or over 200 tool calls (`FACTORY_MAX_TOOL_CALLS`) → told to report BLOCKED |
+| `hooks/audit_log.py` | One JSON line per factory-agent tool call (ok / error / deny + reason) in `.factory/audit/<ticket>.jsonl` |
 | `hooks/stop_gate.py` | A builder can't finish while its layer's tests/typecheck fail (max 3 bounces) |
 | `templates/CLAUDE.md.template` | Project knowledge + the `## Backend` / `## Frontend` layer sections |
 | `templates/contract.md.template` | Backend → frontend API contract |
@@ -50,7 +53,7 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
    No frontend? Delete that section. backend-builder then covers all the code and frontend-builder never runs.
 3. Start: `/factory <idea>`. Resume an interrupted run: `/factory`.
 
-Run state lives in `.factory/` (gitignored): `state.md`, per-ticket contracts, and worktrees.
+Run state lives in `.factory/` (gitignored): `state.md`, per-ticket contracts, worktrees, and `audit/` logs. The audit log stores the first 300 characters of each command, so a secret typed into a command line ends up there; it stays local.
 
 ## Install (local, no download)
 
@@ -73,5 +76,5 @@ claude plugin validate .
 ## Known limits
 
 - `block_secrets` checks `git add`/`commit` against the session's cwd; `cd other && git add .` inside one command is checked against the wrong directory.
-- The validator has Bash for running tests; the "no writes through Bash" rule is enforced by its prompt, not a hook.
+- `guard_bash` parses the shell command line. Writes made inside an interpreter (`python -c`, `node -e`, a script) or by tools like `npm install` are not seen.
 - The stop gate runs your full layer test command on every builder stop. Keep it fast, or point `test:` at a quicker subset.
