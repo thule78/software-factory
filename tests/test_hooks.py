@@ -259,6 +259,61 @@ class GuardBashTest(RepoCase):
             self.assertTrue(self.bash(self.VALIDATOR, cmd), cmd)
 
 
+class LoopBreakerTest(unittest.TestCase):
+    BACKEND = "software-factory:backend-builder"
+
+    def setUp(self):
+        self.agent_id = f"loop-{os.getpid()}-{id(self)}"
+
+    def tearDown(self):
+        state = os.path.join(tempfile.gettempdir(), f"software-factory-loop-{self.agent_id}.json")
+        if os.path.exists(state):
+            os.remove(state)
+
+    def call(self, tool, tool_input, agent_type=BACKEND, env=None):
+        payload = {"tool_name": tool, "tool_input": tool_input, "agent_id": self.agent_id}
+        if agent_type:
+            payload["agent_type"] = agent_type
+        proc = subprocess.run(
+            [sys.executable, os.path.join(HOOKS, "loop_breaker.py")], input=json.dumps(payload),
+            capture_output=True, text=True, timeout=30, env={**os.environ, **(env or {})},
+        )
+        return denied(proc.stdout), proc.stdout
+
+    def test_same_call_four_times_without_change_denied(self):
+        results = [self.call("Bash", {"command": "pytest -q"})[0] for _ in range(4)]
+        self.assertEqual(results, [False, False, False, True])
+
+    def test_repeats_with_edits_between_allowed(self):
+        for n in range(6):
+            self.assertFalse(self.call("Edit", {"file_path": "a.py", "new_string": str(n)})[0])
+            self.assertFalse(self.call("Bash", {"command": "pytest -q"})[0])
+
+    def test_reads_between_do_not_count_as_progress(self):
+        results = []
+        for n in range(4):
+            results.append(self.call("Bash", {"command": "pytest -q"})[0])
+            self.call("Read", {"file_path": f"f{n}.py"})
+        self.assertEqual(results, [False, False, False, True])
+
+    def test_edit_revert_loop_denied(self):
+        to_b = {"file_path": "a.py", "old_string": "A", "new_string": "B"}
+        to_a = {"file_path": "a.py", "old_string": "B", "new_string": "A"}
+        results = [self.call("Edit", e)[0] for e in (to_b, to_a, to_b, to_a, to_b)]
+        self.assertEqual(results, [False, False, False, False, True])
+
+    def test_budget(self):
+        env = {"FACTORY_MAX_TOOL_CALLS": "3"}
+        results = [self.call("Read", {"file_path": f"{n}.py"}, env=env)[0] for n in range(4)]
+        self.assertEqual(results, [False, False, False, True])
+        _, out = self.call("Read", {"file_path": "x.py"}, env=env)
+        self.assertIn("STATUS: BLOCKED", out)
+
+    def test_other_agents_ignored(self):
+        results = [self.call("Bash", {"command": "ls"}, agent_type=None)[0] for _ in range(6)]
+        self.assertFalse(any(results))
+
+
 class StopGateTest(RepoCase):
     backend_test = "exit 1"
 

@@ -29,6 +29,7 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
 | `hooks/block_secrets.py` | Blocks `git add`/`git commit` of `.env`, keys, credentials (exit 2) |
 | `hooks/path_scope.py` | Builders can only write inside their layer's paths; validator can't write |
 | `hooks/guard_bash.py` | Same lanes for shell commands (redirects, `sed -i`, `cp`/`mv`/`rm`...), plus no push/merge/reset --hard/sudo/`curl \| sh`/DROP TABLE for factory agents |
+| `hooks/loop_breaker.py` | Stops a factory agent going in circles: same call 4× with no change between, same edit 3×, or over 200 tool calls (`FACTORY_MAX_TOOL_CALLS`) → told to report BLOCKED |
 | `hooks/stop_gate.py` | A builder can't finish while its layer's tests/typecheck fail (max 3 bounces) |
 | `templates/CLAUDE.md.template` | Project knowledge + the `## Backend` / `## Frontend` layer sections |
 | `templates/contract.md.template` | Backend → frontend API contract |

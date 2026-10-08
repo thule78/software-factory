@@ -1,5 +1,5 @@
 {
-  "description": "software-factory: block secret commits, keep factory agents in their lane (files and shell), gate builder finish on tests",
+  "description": "software-factory: block secret commits, keep factory agents in their lane (files and shell), stop agents going in circles, gate builder finish on tests",
   "hooks": {
     "PreToolUse": [
       {
@@ -24,6 +24,16 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/path_scope.py\"",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/loop_breaker.py\"",
+            "timeout": 10
           }
         ]
       }
