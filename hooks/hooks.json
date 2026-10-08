@@ -1,5 +1,5 @@
 {
-  "description": "software-factory: block secret commits, keep builders in their layer, gate builder finish on tests",
+  "description": "software-factory: block secret commits, keep factory agents in their lane (files and shell), gate builder finish on tests",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,11 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/block_secrets.py\"",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/guard_bash.py\"",
+            "timeout": 15
           }
         ]
       },

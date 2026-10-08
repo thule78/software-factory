@@ -28,6 +28,7 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
 | `agents/validator.md` | Opus. Read-only check against acceptance criteria + contract |
 | `hooks/block_secrets.py` | Blocks `git add`/`git commit` of `.env`, keys, credentials (exit 2) |
 | `hooks/path_scope.py` | Builders can only write inside their layer's paths; validator can't write |
+| `hooks/guard_bash.py` | Same lanes for shell commands (redirects, `sed -i`, `cp`/`mv`/`rm`...), plus no push/merge/reset --hard/sudo/`curl \| sh`/DROP TABLE for factory agents |
 | `hooks/stop_gate.py` | A builder can't finish while its layer's tests/typecheck fail (max 3 bounces) |
 | `templates/CLAUDE.md.template` | Project knowledge + the `## Backend` / `## Frontend` layer sections |
 | `templates/contract.md.template` | Backend → frontend API contract |
@@ -73,5 +74,5 @@ claude plugin validate .
 ## Known limits
 
 - `block_secrets` checks `git add`/`commit` against the session's cwd; `cd other && git add .` inside one command is checked against the wrong directory.
-- The validator has Bash for running tests; the "no writes through Bash" rule is enforced by its prompt, not a hook.
+- `guard_bash` parses the shell command line. Writes made inside an interpreter (`python -c`, `node -e`, a script) or by tools like `npm install` are not seen.
 - The stop gate runs your full layer test command on every builder stop. Keep it fast, or point `test:` at a quicker subset.
