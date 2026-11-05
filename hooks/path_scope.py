@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse(Edit|Write|MultiEdit|NotebookEdit): keep each factory agent inside its lane.
 
-- backend-builder / frontend-builder: may only write inside their layer's `paths`
+- backend-builder / frontend-builder / skill-builder: may only write inside their layer's `paths`
   from CLAUDE.md, plus the factory's own ticket folder (`.factory/tickets/`).
 - validator: may not write files at all.
 - Any other agent or the main session: not affected.
@@ -46,7 +46,9 @@ cfg = layers.get(layer)
 if not cfg:
     deny_pretool(
         f"{role}: the {layer} layer is not configured in {root}/CLAUDE.md "
-        f"(no '## {layer.capitalize()}' section with '- paths:'). Stop and report STATUS: BLOCKED."
+        f"(no '## {layer.capitalize()}' section with '- paths:'"
+        + (" or '- helper:' / '- product:'" if layer == "skills" else "")
+        + "). Stop and report STATUS: BLOCKED."
     )
 
 rel = os.path.relpath(target, root)

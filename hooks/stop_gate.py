@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SubagentStop: a builder may not finish while its layer's tests or typecheck fail.
 
-- Runs only for backend-builder / frontend-builder.
+- Runs only for backend-builder / frontend-builder / skill-builder.
 - Runs in the worktree named by a `WORKTREE: <path>` line in the builder's last
   message, falling back to the hook's cwd.
 - Skips the gate when the builder is deliberately stopping early

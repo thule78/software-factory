@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run a feature through the software factory end to end - grill the idea, write the PRD, split it into tickets, build each ticket with backend-builder and frontend-builder, check it with an independent validator, review, and open a PR, with human approval gates between stages. Use when the user says "factory", "/factory", "run the factory", "build this feature through the factory", or wants to resume a factory run.
+description: Run a feature through the software factory end to end - grill the idea, write the PRD, split it into tickets, plan and build the agent skills the run needs, build each ticket with backend-builder and frontend-builder, check it with an independent validator, review, and open a PR, with human approval gates between stages. Use when the user says "factory", "/factory", "run the factory", "build this feature through the factory", or wants to resume a factory run.
 argument-hint: "[feature idea, or nothing to resume]"
 ---
 
@@ -9,7 +9,7 @@ argument-hint: "[feature idea, or nothing to resume]"
 You are the orchestrator. You run in the main session because only the main session can start subagents and stop to ask the user. You don't write feature code yourself: the builders do. You move work between stages, keep state, and run the gates.
 
 ```
-0 preflight → 1 grill ─GATE→ 2 PRD ─GATE→ 3 tickets ─GATE→ 4 build loop → 5 review ─GATE→ PR
+0 preflight → 1 grill ─GATE→ 2 PRD ─GATE→ 3 tickets ─GATE→ 3b skill plan ─GATE→ 4 build loop → 5 review ─GATE→ PR
 ```
 
 ## State
@@ -21,18 +21,22 @@ feature: <kebab-slug>
 base: <branch the feature starts from, e.g. main>
 branch: factory/<slug>
 integration: <abs path of the integration worktree, set in stage 4>
-stage: 1-grill | 2-prd | 3-tickets | 4-build | 5-review | done
+stage: 1-grill | 2-prd | 3-tickets | 3b-skills | 4-build | 5-review | done
 prd: <issue ref or path>
 
 ## Tickets
 | id | title | layers | blocked_by | status | rounds | notes |
 |----|-------|--------|------------|--------|--------|-------|
 
+## Skills
+| id | name | kind | action | folder | used_by |
+|----|------|------|--------|--------|---------|
+
 ## Carried findings
 - <important/minor validator findings, for the stage 5 brief>
 ```
 
-Ticket `status`: `todo | building | validating | merged | stuck`. `rounds`: validator runs so far.
+Ticket `status`: `todo | building | validating | merged | stuck`. `rounds`: validator runs so far. Skill tickets (ids `S1`..) sit in the same table with `layers: skill`; the `## Skills` table adds what only skills have. A `use` skill (an existing one) appears only in `## Skills`, with `id: -`.
 
 **On start:** if `.factory/state.md` exists and `stage` is not `done`, tell the user in one line which feature and stage you're resuming, then continue from that stage. Otherwise start at stage 0.
 
@@ -47,7 +51,7 @@ A gate is a stop for the user's decision. Use AskUserQuestion with three options
 ## Stage 0: preflight
 1. Must be inside a git repo, else stop.
 2. `docs/agents/issue-tracker.md` must exist. If not, tell the user to type `/setup-matt-pocock-skills` (only the user can run it) and stop.
-3. `CLAUDE.md` must contain at least one factory layer section (`## Backend` / `## Frontend` with a non-empty `- paths:` line). If not, show the user `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE.md.template`, fill in the layer sections together with them from what you see in the repo (paths, test and typecheck commands from package.json / pyproject / Makefile), and write them into CLAUDE.md only after they confirm. Never invent a command that isn't in the repo's config.
+3. `CLAUDE.md` must contain at least one code layer section (`## Backend` / `## Frontend` with a non-empty `- paths:` line). The `## Skills` section is optional here; stage 3b adds it when a run needs it. If not, show the user `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE.md.template`, fill in the layer sections together with them from what you see in the repo (paths, test and typecheck commands from package.json / pyproject / Makefile), and write them into CLAUDE.md only after they confirm. Never invent a command that isn't in the repo's config.
 4. Make sure `.factory/` is in `.gitignore`; add it if missing.
 
 ## Stage 1: grill
@@ -67,15 +71,21 @@ Invoke `to-prd`. Record the PRD reference in state.
 
 **GATE 3:** show the table (id, title, layers, blocked_by) and the build order the blockers imply. Ask to approve tickets and layer tags together.
 
+## Stage 3b: skill plan
+Read [skill-plan.md](skill-plan.md) and follow it. It finds which helper skills (for the builders) and product skills (shipped in the app) this run needs, filters them against [skill-standard.md](skill-standard.md), and adds the approved ones as `skill` tickets that build before the code tickets that use them.
+
+**GATE 3b:** approve the skill plan (or "no skills this run").
+
 ## Stage 4: build loop
 Read [build-loop.md](build-loop.md) and follow it exactly. It covers worktrees, the backend → frontend → validator chain, retries, merging, and when to stop and ask.
 
 ## Stage 5: review and PR
 1. Run the `code-review` skill from inside the integration worktree, with fixed point `<base>`.
 2. If it raises critical issues: create a fix worktree from `factory/<slug>`, send each issue to the builder for its layer (same prompt shape as build-loop.md, with `FIX:`), validate, merge. One round only; anything left goes in the brief.
-3. **GATE 4 (final):** brief: tickets merged, tickets stuck, code-review results, carried important findings, and the full test result on the integration branch. Ask to approve opening the PR.
-4. On approval: push `factory/<slug>` and open the PR against `<base>` the way `docs/agents/issue-tracker.md` describes (on GitHub: `gh pr create`), with a body that lists each ticket and closes it. End the PR body with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
-5. Remove the integration worktree (`git worktree remove`), set `stage: done`.
+3. **Learn** (skill standard, layer 08): for each helper skill used in this run, look at the validator findings and fix rounds of the tickets that used it. A finding that repeated across tickets, or that the skill should have prevented, becomes a proposed change: a new "Done means" line, a `references/` fact, or a script assertion. Draft at most 3 per skill, one line each.
+4. **GATE 4 (final):** brief: tickets merged, tickets stuck, skills built (name, kind, score), proposed Learn lines, code-review results, carried important findings, and the full test result on the integration branch. Ask to approve opening the PR; Learn lines the user approves go to skill-builder as `FIX:` in a fix worktree (same flow as step 2) before the push.
+5. On approval: push `factory/<slug>` and open the PR against `<base>` the way `docs/agents/issue-tracker.md` describes (on GitHub: `gh pr create`), with a body that lists each ticket and closes it. End the PR body with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+6. Remove the integration worktree (`git worktree remove`), set `stage: done`. In the final message, tell the user which skills still need the full 15-run replay test (skill-standard.md, Test card).
 
 ## Rules
 - At most **2 tickets** in flight at once. Within a ticket, steps run in order.

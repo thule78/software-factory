@@ -42,6 +42,20 @@ Order by layers:
 - `backend` → backend-builder only, `CONTRACT: none`.
 - `frontend` → frontend-builder only, `CONTRACT: none`.
 - `backend+frontend` → backend-builder, wait for DONE and the contract file to exist, then frontend-builder.
+- `skill` → skill-builder only (`subagent_type: "software-factory:skill-builder"`), with this prompt instead of the one above:
+  ```
+  WORKTREE: <repo>/.factory/worktrees/<id>
+  TICKET: <ticket ref or path>
+  PRD: <prd ref>
+  STANDARD: ${CLAUDE_PLUGIN_ROOT}/skills/factory/skill-standard.md   (expanded to an absolute path)
+  TEMPLATE: ${CLAUDE_PLUGIN_ROOT}/templates/SKILL.md.template        (expanded to an absolute path)
+  FIX: <validator findings tagged [skill], verbatim, only on fix rounds>
+  ```
+
+**Helper skills for code tickets.** If the ticket appears in a helper skill's `used_by` (state `## Skills`), add one line to every backend/frontend-builder prompt for it:
+```
+SKILLS: <absolute path of each helper SKILL.md in the ticket worktree>
+```
 
 Read each builder report:
 - `STATUS: DONE` → next step.
@@ -56,13 +70,15 @@ BASE: factory/<slug>
 TICKET: <ticket ref>
 LAYERS: <layers>
 CONTRACT: <contract path or none>
+SKILLS: <helper SKILL.md paths the builders were given, or none>
+STANDARD: <absolute path of skill-standard.md, only when LAYERS is skill>
 BUILDER REPORTS: <the builders' final reports, verbatim>
 ```
 Increment `rounds`.
 
 ### D. Route the verdict
 - `VERDICT: PASS` → go to E. Copy its important/minor findings into **Carried findings** in state.
-- `VERDICT: FAIL` and `rounds` ≤ 2 → send the `critical [backend]` findings to backend-builder and the `critical [frontend]` findings to frontend-builder as `FIX:` (backend first if both), then validate again (back to C).
+- `VERDICT: FAIL` and `rounds` ≤ 2 → send the `critical [backend]` findings to backend-builder, `critical [frontend]` to frontend-builder and `critical [skill]` to skill-builder as `FIX:` (backend first if both), then validate again (back to C).
 - `VERDICT: FAIL` and `rounds` = 3 → mark `stuck` with the remaining critical findings in notes.
 
 ### E. Merge

@@ -8,11 +8,15 @@ A Claude Code plugin that runs a feature from idea to PR:
   1 grill       grilling + domain-modeling (= /grill-with-docs)   → GATE
   2 PRD         to-prd                                            → GATE
   3 tickets     to-issues, each tagged backend / frontend / both  → GATE
+  3b skill plan which agent skills this run needs (helper for the
+                builders, product for the app), max 3 new          → GATE
   4 build loop  per ticket, max 2 in parallel:
+                  skill tickets first: skill-builder → validator (scorecard ≥ 9/10)
                   backend-builder → contract.md → frontend-builder → validator
+                  (builders follow the helper skills their ticket uses)
                   FAIL → fix round (max 2) → stuck → you decide
                   PASS → merge into factory/<slug> → full tests
-  5 review      code-review on the whole branch                   → GATE → PR
+  5 review      code-review on the whole branch + Learn lines for skills → GATE → PR
 ```
 
 Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `code-review`) are **called, not copied**. They live in `~/.claude/skills/`; improve them there and the factory picks it up.
@@ -23,9 +27,12 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
 |---|---|
 | `skills/factory/SKILL.md` | Orchestrator: stages, gates, state file |
 | `skills/factory/build-loop.md` | Worktrees, builder → validator chain, retries, merge |
+| `skills/factory/skill-plan.md` | Stage 3b: find, filter and approve the skills a run needs |
+| `skills/factory/skill-standard.md` | The 8-layer skill standard: description shape, Look/Check procedure, scripts, checks, guard, learn, scorecard, test card |
 | `agents/backend-builder.md` | Sonnet. Non-UI code, test-first, writes the contract |
 | `agents/frontend-builder.md` | Sonnet. UI code, test-first, uses only the contract |
-| `agents/validator.md` | Opus. Read-only check against acceptance criteria + contract |
+| `agents/skill-builder.md` | Sonnet. Builds one skill folder to the standard, writes only in `## Skills` folders |
+| `agents/validator.md` | Opus. Read-only check against acceptance criteria + contract; for skills: scorecard, checklist, scripts, trigger dry-run |
 | `hooks/block_secrets.py` | Blocks `git add`/`git commit` of `.env`, keys, credentials (exit 2) |
 | `hooks/path_scope.py` | Builders can only write inside their layer's paths; validator can't write |
 | `hooks/guard_bash.py` | Same lanes for shell commands (redirects, `sed -i`, `cp`/`mv`/`rm`...), plus no push/merge/reset --hard/sudo/`curl \| sh`/DROP TABLE for factory agents |
@@ -34,6 +41,7 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
 | `hooks/stop_gate.py` | A builder can't finish while its layer's tests/typecheck fail (max 3 bounces) |
 | `templates/CLAUDE.md.template` | Project knowledge + the `## Backend` / `## Frontend` layer sections |
 | `templates/contract.md.template` | Backend → frontend API contract |
+| `templates/SKILL.md.template` | Starter SKILL.md every new skill begins from |
 
 ## Per-project setup
 
@@ -51,6 +59,14 @@ Planning skills (`grilling`, `domain-modeling`, `to-prd`, `to-issues`, `tdd`, `c
    - typecheck: npx tsc --noEmit
    ```
    No frontend? Delete that section. backend-builder then covers all the code and frontend-builder never runs.
+
+   Optional, added at stage 3b when a run needs skills:
+   ```markdown
+   ## Skills
+   - helper: .claude/skills
+   - product: app/skills
+   - test: python3 -m pytest .claude/skills -q
+   ```
 3. Start: `/factory <idea>`. Resume an interrupted run: `/factory`.
 
 Run state lives in `.factory/` (gitignored): `state.md`, per-ticket contracts, worktrees, and `audit/` logs. The audit log stores the first 300 characters of each command, so a secret typed into a command line ends up there; it stays local.

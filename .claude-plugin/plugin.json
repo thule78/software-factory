@@ -1,7 +1,7 @@
 {
   "name": "software-factory",
-  "version": "0.1.0",
-  "description": "Feature factory: grill -> PRD -> tickets -> per-ticket backend/frontend build with independent validation, gated by human approvals and enforced by hooks.",
+  "version": "0.2.0",
+  "description": "Feature factory: grill -> PRD -> tickets -> skill plan -> per-ticket skill/backend/frontend build with independent validation, gated by human approvals and enforced by hooks.",
   "author": {
     "name": "thule78"
   },

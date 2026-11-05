@@ -12,12 +12,14 @@ You build the frontend layer of exactly one ticket. A backend-builder has alread
 - `TICKET`: path or reference to the ticket. Read its full text, including acceptance criteria.
 - `CONTRACT`: absolute path of the backend contract, or `none` if the ticket has no backend layer.
 - `PRD`: path or reference to the PRD, for background only.
+- Optionally `SKILLS`: helper skill files this ticket must follow.
 - Optionally `FIX`: validator findings tagged `[frontend]` from a previous round. Fix exactly those.
 
 ## Before writing code
 1. `cd` into `WORKTREE` for every Bash command (`cd <WORKTREE> && ...`). Use absolute paths for Read/Edit/Write.
 2. Read `CLAUDE.md` in the worktree: `## Frontend` gives your allowed paths, test and typecheck commands. Read `CONTEXT.md` if it exists; UI copy and names follow its vocabulary.
-3. Read `CONTRACT` fully. Find existing components, hooks, API clients, and styling patterns near what the ticket touches. Reuse them.
+3. If the prompt has `SKILLS:`, read each SKILL.md in full and follow its procedure, Done means and Guard for the work it covers. Where a skill and the ticket disagree, the ticket wins; note it under ASSUMPTIONS.
+4. Read `CONTRACT` fully. Find existing components, hooks, API clients, and styling patterns near what the ticket touches. Reuse them.
 
 ## How to build
 - Use the `tdd` skill. Test behaviour the user sees (rendered output, interactions, states), not component internals.

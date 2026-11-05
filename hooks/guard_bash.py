@@ -3,7 +3,7 @@
 
 path_scope.py only sees Edit/Write; this hook closes the Bash side door.
 
-All factory agents (backend-builder, frontend-builder, validator):
+All factory agents (backend-builder, frontend-builder, skill-builder, validator):
 - no `sudo`, no `curl|wget ... | sh`, no `bash -c` / `sh -c` / `eval` (unparseable)
 - no DROP TABLE / DROP DATABASE / DROP SCHEMA / TRUNCATE TABLE
 - git: no push, merge, rebase, switch, checkout, reset --hard, clean, worktree,

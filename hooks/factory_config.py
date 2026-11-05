@@ -1,13 +1,19 @@
 """Shared helpers for software-factory hooks.
 
-Reads the `## Backend` / `## Frontend` layer sections from a repo's CLAUDE.md:
+Reads the `## Backend` / `## Frontend` / `## Skills` layer sections from a repo's CLAUDE.md:
 
     ## Backend
     - paths: src/api, tests/backend
     - test: pytest -q
     - typecheck: mypy src
 
-A missing section, or an empty `paths:`, means the layer is off.
+    ## Skills
+    - helper: .claude/skills
+    - product: app/skills
+    - test: python3 -m pytest .claude/skills -q
+
+For `## Skills`, `helper:` and `product:` are kept as-is and also added to `paths`.
+A missing section, or no paths at all, means the layer is off.
 Values still holding a template placeholder (`<...>`) count as empty.
 """
 
@@ -18,8 +24,9 @@ import subprocess
 import sys
 import time
 
-LAYERS = ("backend", "frontend")
-BUILDER_ROLES = {"backend-builder": "backend", "frontend-builder": "frontend"}
+LAYERS = ("backend", "frontend", "skills")
+SKILL_KINDS = ("helper", "product")
+BUILDER_ROLES = {"backend-builder": "backend", "frontend-builder": "frontend", "skill-builder": "skills"}
 FACTORY_ROLES = {"validator", *BUILDER_ROLES}
 AUDIT_SUMMARY_CHARS = 300
 
@@ -47,7 +54,10 @@ def _clean(value):
 
 
 def load_layers(repo_root):
-    """Return {"backend": {"paths": [...], "test": str, "typecheck": str}, ...}; absent layers omitted."""
+    """Return {"backend": {"paths": [...], "test": str, "typecheck": str}, ...}; absent layers omitted.
+
+    The skills layer also carries "helper" and "product" path lists.
+    """
     path = os.path.join(repo_root, "CLAUDE.md")
     try:
         with open(path, encoding="utf-8") as f:
@@ -65,17 +75,22 @@ def load_layers(repo_root):
             current = name if name in LAYERS else None
             if current:
                 layers[current] = {"paths": [], "test": "", "typecheck": ""}
+                if current == "skills":
+                    layers[current].update({kind: [] for kind in SKILL_KINDS})
             continue
         if not current:
             continue
-        item = re.match(r"^\s*-\s*(paths|test|typecheck)\s*:\s*(.*)$", line)
+        item = re.match(r"^\s*-\s*(paths|test|typecheck|helper|product)\s*:\s*(.*)$", line)
         if not item:
             continue
         key, value = item.group(1), item.group(2)
-        if key == "paths":
-            layers[current]["paths"] = [
-                p.strip().strip("/") for p in value.split(",") if _clean(p)
-            ]
+        if key in SKILL_KINDS and current != "skills":
+            continue
+        if key == "paths" or key in SKILL_KINDS:
+            found = [p.strip().strip("/") for p in value.split(",") if _clean(p)]
+            if key in SKILL_KINDS:
+                layers[current][key] = found
+            layers[current]["paths"] = list(dict.fromkeys(layers[current]["paths"] + found))
         else:
             layers[current][key] = _clean(value)
 

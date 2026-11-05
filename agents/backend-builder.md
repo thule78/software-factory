@@ -12,12 +12,14 @@ You build the backend layer of exactly one ticket. You are one step in a pipelin
 - `TICKET`: path or reference to the ticket. Read its full text, including acceptance criteria and "Blocked by".
 - `CONTRACT`: absolute path where you write the contract, or `none` if the ticket has no frontend layer.
 - `PRD`: path or reference to the PRD, for background only.
+- Optionally `SKILLS`: helper skill files this ticket must follow.
 - Optionally `FIX`: validator findings tagged `[backend]` from a previous round. Fix exactly those.
 
 ## Before writing code
 1. `cd` into `WORKTREE` for every Bash command (`cd <WORKTREE> && ...`). Use absolute paths for Read/Edit/Write.
 2. Read `CLAUDE.md` in the worktree: `## Backend` gives your allowed paths, test and typecheck commands. Read `CONTEXT.md` and relevant `docs/adr/` if they exist; use their vocabulary.
-3. Find the existing code the ticket touches and the patterns it already uses. Reuse them; don't invent a parallel style.
+3. If the prompt has `SKILLS:`, read each SKILL.md in full and follow its procedure, Done means and Guard for the work it covers. Where a skill and the ticket disagree, the ticket wins; note it under ASSUMPTIONS.
+4. Find the existing code the ticket touches and the patterns it already uses. Reuse them; don't invent a parallel style.
 
 ## How to build
 - Use the `tdd` skill: red → green → refactor, testing at public seams.

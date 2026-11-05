@@ -41,3 +41,13 @@
 - paths: src/app, src/components, tests/frontend
 - test: <e.g. npm test -- --run>
 - typecheck: <e.g. npx tsc --noEmit, or leave empty>
+
+<!--
+  Optional. Agent skills the factory builds (stage 3b). helper = skills the builders
+  follow while coding this repo; product = skills the app ships. Only skill-builder
+  may write here.
+-->
+## Skills
+- helper: .claude/skills
+- product: <where the product loads its skills from, or leave empty>
+- test: <optional, e.g. python3 -m pytest .claude/skills -q>

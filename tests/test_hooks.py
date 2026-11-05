@@ -83,6 +83,65 @@ class ConfigTest(RepoCase):
         self.assertEqual(set(layers), {"backend", "frontend"})
 
 
+class SkillsLayerTest(RepoCase):
+    """`## Skills` with helper/product folders: parsed, and skill-builder kept inside them."""
+    SKILL = "software-factory:skill-builder"
+
+    def setUp(self):
+        super().setUp()
+        self.write("CLAUDE.md", CLAUDE_MD.format(backend_test="true") + textwrap.dedent("""
+            ## Skills
+            - helper: .claude/skills/
+            - product: app/skills, <e.g. more>
+            - test: true
+        """))
+
+    def test_parses_helper_and_product_into_paths(self):
+        sys.path.insert(0, HOOKS)
+        from factory_config import load_layers
+        skills = load_layers(self.repo)["skills"]
+        self.assertEqual(skills["helper"], [".claude/skills"])
+        self.assertEqual(skills["product"], ["app/skills"])
+        self.assertEqual(skills["paths"], [".claude/skills", "app/skills"])
+        self.assertEqual(skills["test"], "true")
+
+    def test_helper_key_ignored_outside_skills_section(self):
+        self.write("CLAUDE.md", "## Backend\n- paths: src/api\n- helper: nope\n")
+        sys.path.insert(0, HOOKS)
+        from factory_config import load_layers
+        self.assertEqual(load_layers(self.repo)["backend"]["paths"], ["src/api"])
+
+    def edit(self, agent_type, rel):
+        return run_hook("path_scope.py", {
+            "tool_name": "Write", "cwd": self.repo, "agent_type": agent_type,
+            "tool_input": {"file_path": os.path.join(self.repo, rel)},
+        })[1]
+
+    def test_skill_builder_writes_only_skill_folders(self):
+        for rel in (".claude/skills/add-endpoint/SKILL.md", "app/skills/audit-spending/scripts/x.py"):
+            self.assertFalse(denied(self.edit(self.SKILL, rel)), rel)
+        for rel in ("src/api/x.py", "CLAUDE.md", ".claude/settings.json"):
+            self.assertTrue(denied(self.edit(self.SKILL, rel)), rel)
+
+    def test_code_builders_cannot_write_skills(self):
+        self.assertTrue(denied(self.edit("software-factory:backend-builder", ".claude/skills/x/SKILL.md")))
+
+    def test_skill_builder_without_skills_section_blocked(self):
+        self.write("CLAUDE.md", CLAUDE_MD.format(backend_test="true"))
+        out = self.edit(self.SKILL, ".claude/skills/x/SKILL.md")
+        self.assertTrue(denied(out))
+        self.assertIn("helper", out)
+
+    def test_skill_builder_shell_lane(self):
+        def bash(cmd):
+            return denied(run_hook("guard_bash.py", {
+                "tool_name": "Bash", "cwd": self.repo, "agent_type": self.SKILL,
+                "tool_input": {"command": cmd}})[1])
+        self.assertFalse(bash("mkdir -p .claude/skills/x/scripts && python3 .claude/skills/x/scripts/a.py > /tmp/o.json"))
+        self.assertTrue(bash("echo x > src/api/x.py"))
+        self.assertTrue(bash("git push"))
+
+
 class PathScopeTest(RepoCase):
     def edit(self, agent_type, rel):
         payload = {"tool_name": "Write", "cwd": self.repo,
